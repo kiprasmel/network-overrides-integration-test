@@ -37,6 +37,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          # see https://github.com/actions/checkout/issues/217
+          # TODO optimise perf?
+          fetch-depth: 0
+
       - uses: actions/setup-node@v3
         with:
           node-version: 16
@@ -60,9 +65,16 @@ jobs:
 
           # https://stackoverflow.com/a/31914717/9285308
           if git rev-parse --quiet --verify "$BUILD_BRANCH"; then
+            echo "BRANCH DOES exist"
+            git log --oneline --graph
+
             git checkout "$BUILD_BRANCH"
             git pull --rebase
+
+            echo "after pull:"
+            git log --oneline --graph
           else
+            echo "BRANCH does NOT exist"
             git checkout --orphan "$BUILD_BRANCH"
           fi
 
