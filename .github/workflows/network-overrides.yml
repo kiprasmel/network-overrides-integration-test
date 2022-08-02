@@ -36,10 +36,11 @@ jobs:
       BUILD_DIR: build
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
         with:
           # see https://github.com/actions/checkout/issues/217
           # TODO optimise perf?
+          # TODO also fix for v3, because currently works only with v2 (because of https://github.com/actions/checkout/issues/217#issuecomment-634802933 )
           fetch-depth: 0
 
       - uses: actions/setup-node@v3
