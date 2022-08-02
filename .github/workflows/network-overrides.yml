@@ -64,18 +64,20 @@ jobs:
           TMP_BUILD_DIR="$(mktemp -d)"
           mv -v "$BUILD_DIR" "$TMP_BUILD_DIR"
 
+          git diff
+
           # https://stackoverflow.com/a/31914717/9285308
           if git rev-parse --quiet --verify "origin/$BUILD_BRANCH"; then
-            echo "(remote) BRANCH DOES exist"
-            git log --oneline --graph
+            echo "(remote) branch DOES exist"
+            git log --oneline --graph "origin/$BUILD_BRANCH"
 
             git checkout "$BUILD_BRANCH"
             git pull --rebase
 
             echo "after pull:"
-            git log --oneline --graph
+            git log --oneline --graph "origin/$BUILD_BRANCH"
           else
-            echo "(remote) BRANCH does NOT exist"
+            echo "(remote) branch does NOT exist"
             git checkout --orphan "$BUILD_BRANCH"
           fi
 
