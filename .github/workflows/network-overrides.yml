@@ -66,13 +66,13 @@ jobs:
           mv -v "$BUILD_DIR" "$TMP_BUILD_DIR"
 
           git diff --exit-code || {
-            printf "\nWARNING: untracked changes found."
             if [ -z "$EXIT_ON_CHANGES_OUTSIDE_BUILD" ] || [ "$EXIT_ON_CHANGES_OUTSIDE_BUILD" != "0" ]; then
+              printf "\nERROR: untracked changes found and "EXIT_ON_CHANGES_OUTSIDE_BUILD" env var was set. exiting.\n\n"
               exit 1
             else
+              printf "\nWARNING: untracked changes found. resetting them because "EXIT_ON_CHANGES_OUTSIDE_BUILD" env var not set.\n\n"
               git checkout -- .
             fi
-            printf "\n\n"
           }
 
           # https://stackoverflow.com/a/31914717/9285308
