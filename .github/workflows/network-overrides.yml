@@ -34,7 +34,7 @@ jobs:
       SETUP_PROJECT_CMD: npm i
       BUILD_CMD: npm run build
       BUILD_DIR: build
-      # EXIT_ON_CHANGES_OUTSIDE_BUILD: 0
+      EXIT_ON_CHANGES_OUTSIDE_BUILD: 0
 
     steps:
       - uses: actions/checkout@v2
@@ -67,24 +67,21 @@ jobs:
 
           git diff --exit-code || {
             printf "\nWARNING: untracked changes found."
-            # if [ -z "$EXIT_ON_CHANGES_OUTSIDE_BUILD" ] || [ "$EXIT_ON_CHANGES_OUTSIDE_BUILD" -ne 0 ]; then
-            #   exit 1
-            # fi
+            if [ -z "$EXIT_ON_CHANGES_OUTSIDE_BUILD" ] || [ "$EXIT_ON_CHANGES_OUTSIDE_BUILD" != "0" ]; then
+              exit 1
+            else
+              git checkout -- .
+            fi
             printf "\n\n"
           }
 
           # https://stackoverflow.com/a/31914717/9285308
           if git rev-parse --quiet --verify "origin/$BUILD_BRANCH"; then
-            echo "(remote) branch DOES exist"
-            git log --oneline --graph "origin/$BUILD_BRANCH"
-
+            echo "remote branch __does__ exist"
             git checkout "$BUILD_BRANCH"
             git pull --rebase
-
-            echo "after pull:"
-            git log --oneline --graph "origin/$BUILD_BRANCH"
           else
-            echo "(remote) branch does NOT exist"
+            echo "remote branch __does NOT__ exist"
             git checkout --orphan "$BUILD_BRANCH"
           fi
 
