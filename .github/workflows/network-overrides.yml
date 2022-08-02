@@ -30,6 +30,11 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    env:
+      SETUP_PROJECT_CMD: npm i
+      BUILD_CMD: npm run build
+      BUILD_DIR: build
+
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
@@ -37,12 +42,13 @@ jobs:
           node-version: 16
 
       - run: |
-          git config --global user.email "network-overrides.v0@example.com"
-          git config --global user.name "Network Overrides"
+          git config --global user.email "network-overrides+v0@example.com"
+          git config --global user.name "network-overrides-bot"
 
-      - run: npm i
+      - run: bash -c "$SETUP_PROJECT_CMD"
 
       - name: "perform magic"
+        shell: bash
         run: |
           BRANCH="$(git branch --show-current)"
           BUILD_BRANCH="x-build/$BRANCH"
@@ -50,7 +56,7 @@ jobs:
           bash -c "$BUILD_CMD"
 
           TMP_BUILD_DIR="$(mktemp -d)"
-          mv "$BUILD_DIR" "$TMP_BUILD_DIR"
+          mv -v "$BUILD_DIR" "$TMP_BUILD_DIR"
 
           # https://stackoverflow.com/a/31914717/9285308
           if git rev-parse --quiet --verify "$BUILD_BRANCH"; then
@@ -63,12 +69,15 @@ jobs:
           git clean -xdf
           git rm -rf .
 
-          mv "$TMP_BUILD_DIR/$BUILD_DIR/*" .
+          mv -v -f "$TMP_BUILD_DIR/$BUILD_DIR"/* .
 
+          git add .
           BRANCH_COMMIT="$(git rev-parse "$BRANCH")"
-          COMMIT_MSG="build $BRANCH_COMMIT from $BRANCH\n\n[skip ci]"
+          cat <<EOF | git commit -F-
+          build $BRANCH_COMMIT from $BRANCH
 
-          git commit -m "$COMMIT_MSG"
+          [skip ci]
+          EOF
 
           # # force, because BUILD_DIR is most likely ignored in .gitignore.
           # git add "$BUILD_DIR" --force
@@ -81,6 +90,3 @@ jobs:
           # git cherry-pick -s ourt -X theirs "$BUILD_TREE_COMMIT" # TODO: does NOT get rid of other changes, but rather - merges old & new
 
           git -c push.autoSetupRemote=true push --force
-        env:
-          BUILD_CMD: npm run build
-          BUILD_DIR: build/
