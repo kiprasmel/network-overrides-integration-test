@@ -65,8 +65,8 @@ jobs:
           mv -v "$BUILD_DIR" "$TMP_BUILD_DIR"
 
           # https://stackoverflow.com/a/31914717/9285308
-          if git rev-parse --quiet --verify "$BUILD_BRANCH"; then
-            echo "BRANCH DOES exist"
+          if git rev-parse --quiet --verify "origin/$BUILD_BRANCH"; then
+            echo "(remote) BRANCH DOES exist"
             git log --oneline --graph
 
             git checkout "$BUILD_BRANCH"
@@ -75,7 +75,7 @@ jobs:
             echo "after pull:"
             git log --oneline --graph
           else
-            echo "BRANCH does NOT exist"
+            echo "(remote) BRANCH does NOT exist"
             git checkout --orphan "$BUILD_BRANCH"
           fi
 
