@@ -8,6 +8,15 @@ on:
     branches-ignore:
       - "x-build/*"
 
+      # TODO - will need this after testing.
+      # or a general way to specify the default branch.
+      # because too much activity, even w/ pull --rebase,
+      # can become incorrect.
+      # and in general, u shouldn't need to load from master,
+      # since it's what's in production already.
+      #
+      # - "master"
+
   # PR not needed since push is enough?
 
   # pull_request:
@@ -21,10 +30,6 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    env:
-      BUILD_CMD: npm run build
-      BUILD_DIR: build/
-
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
@@ -32,41 +37,50 @@ jobs:
           node-version: 16
 
       - run: |
-          git config --global user.email "network-overrides@example.com"
+          git config --global user.email "network-overrides.v0@example.com"
           git config --global user.name "Network Overrides"
 
       - run: npm i
 
-      - run: |
+      - name: "perform magic"
+        run: |
           BRANCH="$(git branch --show-current)"
           BUILD_BRANCH="x-build/$BRANCH"
 
-          # # https://stackoverflow.com/a/31914717/9285308
-          # if git rev-parse --quiet --verify "$BUILD_BRANCH"; then
-          #   git checkout "$BUILD_BRANCH"
-          #   git pull --rebase
-          # else
-          #   git checkout -b "$BUILD_BRANCH"
-          # fi
-          #
-          # # git reset --hard "$BRANCH"
-
-          git branch "$BUILD_BRANCH" --force HEAD
-          git checkout "$BUILD_BRANCH"
-
           bash -c "$BUILD_CMD"
 
-          # TMP_BUILD_DIR="$(mktemp -d)"
-          # mv "$BUILD_DIR" "$TMP_BUILD_DIR"
-          # rm -rf * .*
+          TMP_BUILD_DIR="$(mktemp -d)"
+          mv "$BUILD_DIR" "$TMP_BUILD_DIR"
+
+          # https://stackoverflow.com/a/31914717/9285308
+          if git rev-parse --quiet --verify "$BUILD_BRANCH"; then
+            git checkout "$BUILD_BRANCH"
+            git pull --rebase
+          else
+            git checkout --orphan "$BUILD_BRANCH"
+          fi
+
+          git clean -xdf
+          git rm -rf .
+
+          mv "$TMP_BUILD_DIR/$BUILD_DIR/*" .
 
           BRANCH_COMMIT="$(git rev-parse "$BRANCH")"
-          # TODO maybe add "[skip ci]" to message body?
-          COMMIT_MSG="build $BRANCH_COMMIT from $BRANCH"
+          COMMIT_MSG="build $BRANCH_COMMIT from $BRANCH\n\n[skip ci]"
 
-          git add "$BUILD_DIR"
-          BUILD_TREE="$(git write-tree --prefix "$BUILD_DIR")"
-          BUILD_TREE_COMMIT="$(git commit-tree "$BUILD_TREE" -m "$COMMIT_MSG")"
-          git reset --hard "$BUILD_TREE_COMMIT"
+          git commit -m "$COMMIT_MSG"
+
+          # # force, because BUILD_DIR is most likely ignored in .gitignore.
+          # git add "$BUILD_DIR" --force
+          # BUILD_TREE="$(git write-tree --prefix "$BUILD_DIR")"
+          # BUILD_TREE_COMMIT="$(git commit-tree "$BUILD_TREE" -m "$COMMIT_MSG")"
+          # git reset --hard HEAD
+
+          # git checkout "$BUILD_BRANCH"
+          # # git reset --hard "$BUILD_TREE_COMMIT"
+          # git cherry-pick -s ourt -X theirs "$BUILD_TREE_COMMIT" # TODO: does NOT get rid of other changes, but rather - merges old & new
 
           git -c push.autoSetupRemote=true push --force
+        env:
+          BUILD_CMD: npm run build
+          BUILD_DIR: build/
