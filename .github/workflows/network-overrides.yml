@@ -51,4 +51,4 @@ jobs:
 
       - uses: kiprasmel/git-publish-generated-branch@master
         with:
-          ARGS: '--dir "build" --branch-prefix "x-build/" --no-exit-on-changes-outside-build'
+          ARGS: '--dir "build" --branch-prefix "x-build/"'
