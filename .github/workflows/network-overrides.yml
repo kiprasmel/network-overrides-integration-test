@@ -45,6 +45,12 @@ jobs:
       - run: |
           git config --global user.email "network-overrides+v0@example.com"
           git config --global user.name "network-overrides-bot"
+
+          # fatal: detected dubious ownership in repository at '/github/workspace'
+          # To add an exception for this directory, call:
+          git config --global --add safe.directory /github/workspace
+          git config          --add safe.directory /github/workspace
+
       - run: npm i
       - run: npm run build
 
