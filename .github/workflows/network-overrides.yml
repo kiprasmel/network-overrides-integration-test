@@ -30,11 +30,6 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    env:
-      SETUP_PROJECT_CMD: npm i
-      BUILD_CMD: npm run build
-      BUILD_DIR: build
-      EXIT_ON_CHANGES_OUTSIDE_BUILD: 0
 
     steps:
       - uses: actions/checkout@v2
@@ -43,7 +38,6 @@ jobs:
           # TODO optimise perf?
           # TODO also fix for v3, because currently works only with v2 (because of https://github.com/actions/checkout/issues/217#issuecomment-634802933 )
           fetch-depth: 0
-
       - uses: actions/setup-node@v3
         with:
           node-version: 16
@@ -51,83 +45,9 @@ jobs:
       - run: |
           git config --global user.email "network-overrides+v0@example.com"
           git config --global user.name "network-overrides-bot"
+      - run: npm i
+      - run: npm run build
 
-      - run: bash -c "$SETUP_PROJECT_CMD"
-
-      - name: "perform magic"
-        shell: bash
-        run: |
-          BRANCH="$(git branch --show-current)"
-          BUILD_BRANCH="x-build/$BRANCH"
-
-          bash -c "$BUILD_CMD"
-
-          TMP_BUILD_DIR="$(mktemp -d)"
-          mv -v "$BUILD_DIR" "$TMP_BUILD_DIR"
-
-          FOUND_UNTRACKED_CHANGES_OUTSIDE_BUILD=0
-          git diff --exit-code || {
-            FOUND_UNTRACKED_CHANGES_OUTSIDE_BUILD=1
-
-            if [ -z "$EXIT_ON_CHANGES_OUTSIDE_BUILD" ] || [ "$EXIT_ON_CHANGES_OUTSIDE_BUILD" != "0" ]; then
-              printf "\nERROR: untracked changes found and "EXIT_ON_CHANGES_OUTSIDE_BUILD" env var was set. exiting.\n\n"
-              exit 1
-            else
-              printf "\nWARNING: untracked changes found. resetting them because "EXIT_ON_CHANGES_OUTSIDE_BUILD" env var was not set.\n\n"
-              git checkout -- .
-            fi
-          }
-
-          # https://stackoverflow.com/a/31914717/9285308
-          if git rev-parse --quiet --verify "origin/$BUILD_BRANCH"; then
-            echo "remote branch __does__ exist"
-            git checkout "$BUILD_BRANCH"
-            git pull --rebase
-          else
-            echo "remote branch __does NOT__ exist"
-            git checkout --orphan "$BUILD_BRANCH"
-          fi
-
-          git clean -xdf
-          git rm -rf .
-
-          mv -v -f "$TMP_BUILD_DIR/$BUILD_DIR"/* .
-
-          NO_CHANGES_IN_BUILD=0
-          ALLOW_EMPTY_FLAG=""
-          COMMIT_TITLE_PREFIX=""
-          git diff --exit-code && {
-            printf "\nWARNING: 0 changes detected. will amend the commit.\n\n"
-            NO_CHANGES_IN_BUILD=1
-            ALLOW_EMPTY_FLAG="--allow-empty"
-            COMMIT_TITLE_PREFIX="(NO CHANGES) "
-          }
-
-          git add .
-
-          BRANCH_COMMIT="$(git rev-parse "$BRANCH")"
-
-          cat <<EOF | git commit $ALLOW_EMPTY_FLAG -F-
-          ${COMMIT_TITLE_PREFIX}build $BRANCH_COMMIT from $BRANCH
-
-          [skip ci]
-
-          ---
-          NETWORK_OVERRIDES_BOT_VERSION: 0
-          FOUND_UNTRACKED_CHANGES_OUTSIDE_BUILD: $FOUND_UNTRACKED_CHANGES_OUTSIDE_BUILD
-          NO_CHANGES_IN_BUILD: $NO_CHANGES_IN_BUILD
-          ---
-
-          EOF
-
-          # # force, because BUILD_DIR is most likely ignored in .gitignore.
-          # git add "$BUILD_DIR" --force
-          # BUILD_TREE="$(git write-tree --prefix "$BUILD_DIR")"
-          # BUILD_TREE_COMMIT="$(git commit-tree "$BUILD_TREE" -m "$COMMIT_MSG")"
-          # git reset --hard HEAD
-
-          # git checkout "$BUILD_BRANCH"
-          # # git reset --hard "$BUILD_TREE_COMMIT"
-          # git cherry-pick -s ourt -X theirs "$BUILD_TREE_COMMIT" # TODO: does NOT get rid of other changes, but rather - merges old & new
-
-          git -c push.autoSetupRemote=true push --force
+      - uses: kiprasmel/git-publish-generated-branch@master
+        with:
+          ARGS: '--dir "build" --branch-prefix "x-build/"'
