@@ -17,19 +17,12 @@ on:
       #
       # - "master"
 
-  # PR not needed since push is enough?
-
-  # pull_request:
-  #   branches:
-  #     - master
-
 jobs:
   build:
     # TODO use from network-overrides
     # uses:
 
     runs-on: ubuntu-latest
-
 
     steps:
       - uses: actions/checkout@v2
