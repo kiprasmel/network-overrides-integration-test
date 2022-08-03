@@ -3,6 +3,11 @@ name: network-overrides
 on:
   workflow_dispatch:
     # manual trigger
+    inputs:
+      EXTRA_ARGS:
+        description: "extra args to pass to the CLI"
+        required: false
+
   push:
     # on push to any branch, excluding our generated ones
     branches-ignore:
@@ -44,4 +49,4 @@ jobs:
 
       - uses: kiprasmel/git-publish-generated-branch@master
         with:
-          ARGS: '--dir "build" --branch-prefix "x-build/"'
+          ARGS: '--dir "build" --branch-prefix "x-build/" ${{ github.event.inputs.EXTRA_ARGS }}'
